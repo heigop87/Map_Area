@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YachtWay. Map Search Prototype.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --brand-900: #2B0033;
+    --brand-800: #260754;
+    --brand-700: #4B0EA3;
+    --brand-600: #6430B0;
+    --brand-500: #7E528E;
+    --grad-a-start: #8729FA;
+    --grad-a-end: #2B0075;
+    --bg-1: #FFFFFF;
+    --bg-2: #F9F9F9;
+    --gray-10: #F9FAFB;
+    --gray-25: #F6F6F7;
+    --gray-50: #F1F1F2;
+    --gray-100: #DCDCDE;
+    --gray-200: #C1C1C4;
+    --gray-300: #A6A6AB;
+    --gray-700: #4A4A52;
+    --success: #32D583;
+    --warning: #FDB022;
+    --error: #F97066;
+    --shadow-card: 0 1px 2px rgba(38,7,84,0.04), 0 4px 16px rgba(38,7,84,0.06);
+    --shadow-elev: 0 8px 32px rgba(38,7,84,0.12), 0 2px 6px rgba(38,7,84,0.08);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Figtree', system-ui, sans-serif;
+    color: var(--brand-800);
+    background: var(--bg-2);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5 { font-family: 'Poppins', system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+
+  /* TOP NAV */
+  .nav {
+    height: 64px;
+    background: #fff;
+    border-bottom: 1px solid var(--gray-50);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 32px;
+    position: relative;
+    z-index: 50;
+  }
+
+  .logo {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    color: var(--brand-800);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo .mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(254deg, var(--grad-a-start), var(--grad-a-end));
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .logo .word { letter-spacing: 0.18em; }
+
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: var(--gray-700); }
+  .nav-links a { color: inherit; text-decoration: none; padding: 8px 0; font-weight: 500; }
+  .nav-links a.active { color: var(--brand-800); border-bottom: 2px solid var(--brand-800); }
+
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .btn-ghost {
+    font-family: 'Figtree', sans-serif;
+    background: transparent;
+    border: none;
+    color: var(--brand-800);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 12px;
+  }
+  .btn-primary {
+    font-family: 'Figtree', sans-serif;
+    background: linear-gradient(254deg, var(--grad-a-start), var(--grad-a-end));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(75,14,163,0.25);
+  }
+
+  /* FILTER BAR */
+  .filterbar {
+    height: 60px;
+    background: #fff;
+    border-bottom: 1px solid var(--gray-50);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    position: relative;
+    z-index: 40;
+  }
+
+  .pill {
+    font-family: 'Figtree', sans-serif;
+    border: 1px solid var(--gray-100);
+    background: #fff;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-800);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .pill:hover { border-color: var(--brand-700); color: var(--brand-700); }
+  .pill.active { background: var(--brand-800); color: #fff; border-color: var(--brand-800); }
+  .pill svg { width: 12px; height: 12px; }
+
+  .search-box {
+    flex: 1;
+    max-width: 360px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid var(--gray-100);
+    border-radius: 999px;
+    padding: 0 16px 0 40px;
+    font-family: 'Figtree', sans-serif;
+    font-size: 13px;
+    background: var(--gray-10);
+    outline: none;
+  }
+  .search-box input:focus { border-color: var(--brand-700); background: #fff; }
+  .search-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray-300); }
+
+  .filter-results { margin-left: auto; font-size: 13px; color: var(--gray-700); font-weight: 500; }
+  .filter-results strong { color: var(--brand-800); font-weight: 600; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    height: calc(100vh - 124px);
+    background: var(--bg-2);
+  }
+
+  /* LISTINGS PANEL */
+  .listings-panel {
+    overflow-y: auto;
+    padding: 20px 24px 32px;
+    border-right: 1px solid var(--gray-50);
+    background: var(--bg-2);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .panel-header h2 { font-size: 20px; }
+
+  .back-btn {
+    background: #fff;
+    border: 1px solid var(--gray-100);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: 'Figtree', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--brand-800);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .back-btn:hover {
+    border-color: var(--brand-700);
+    color: var(--brand-700);
+    transform: translateX(-2px);
+  }
+  .panel-sub { font-size: 13px; color: var(--gray-700); margin-bottom: 18px; }
+
+  .listings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    border: 2px solid transparent;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-elev); }
+  .card.highlighted { border-color: var(--brand-700); box-shadow: 0 0 0 4px rgba(75,14,163,0.12), var(--shadow-elev); }
+
+  .card-image {
+    aspect-ratio: 16 / 10;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .card-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255,255,255,0.95);
+    color: var(--brand-800);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    backdrop-filter: blur(6px);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .card-badge.verified { background: rgba(50,213,131,0.15); color: #1a7d4d; }
+  .card-badge.central { background: linear-gradient(254deg, var(--grad-a-start), var(--grad-a-end)); color: #fff; }
+  .card-badge.unverified { background: rgba(252,176,34,0.15); color: #8a5400; }
+  .card-badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .card-fav {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    display: grid;
+    place-items: center;
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+  }
+  .card-fav svg { width: 14px; height: 14px; color: var(--brand-800); }
+
+  .card-body { padding: 14px 16px 16px; }
+  .card-price {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--brand-800);
+    margin-bottom: 2px;
+  }
+  .card-title {
+    font-family: 'Figtree', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-800);
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-specs {
+    font-size: 12px;
+    color: var(--gray-700);
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .card-specs span { display: inline-flex; align-items: center; gap: 4px; }
+  .card-marina {
+    font-size: 12px;
+    color: var(--gray-700);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-top: 8px;
+    border-top: 1px solid var(--gray-50);
+  }
+  .card-marina svg { width: 11px; height: 11px; color: var(--brand-700); }
+  .card-marina .approx {
+    margin-left: auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-300);
+    font-weight: 600;
+  }
+
+  /* MAP PANEL */
+  .map-panel {
+    position: relative;
+    background: #e8eef3;
+  }
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* MAP OVERLAYS */
+  .map-overlay {
+    position: absolute;
+    z-index: 1000;
+    pointer-events: auto;
+  }
+
+  .market-summary {
+    top: 18px;
+    left: 18px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-elev);
+    width: 240px;
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+  .market-summary h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-700); font-weight: 600; margin-bottom: 8px; }
+  .market-summary .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; }
+  .market-summary .stat-row span:first-child { color: var(--gray-700); }
+  .market-summary .stat-row span:last-child { color: var(--brand-800); font-weight: 600; font-family: 'Poppins'; }
+  .market-summary .divider { height: 1px; background: var(--gray-50); margin: 6px 0; }
+
+  .map-controls {
+    top: 18px;
+    right: 18px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    box-shadow: var(--shadow-elev);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .map-toggle {
+    background: transparent;
+    border: none;
+    padding: 8px 14px;
+    font-family: 'Figtree', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-700);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+  }
+  .map-toggle:hover { background: var(--gray-25); }
+  .map-toggle.active { background: var(--brand-800); color: #fff; }
+  .map-toggle .swatch { width: 10px; height: 10px; border-radius: 2px; background: var(--brand-700); }
+
+  .legend {
+    bottom: 18px;
+    left: 18px;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    box-shadow: var(--shadow-elev);
+    font-size: 11px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+  }
+  .legend.show { display: flex; }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--gray-700); font-weight: 500; }
+  .legend-item .swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  .zoom-hint {
+    bottom: 18px;
+    right: 18px;
+    background: rgba(38,7,84,0.92);
+    color: #fff;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    box-shadow: var(--shadow-elev);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .zoom-hint.show { opacity: 1; }
+  .zoom-hint .badge { background: rgba(255,255,255,0.18); padding: 2px 6px; border-radius: 4px; font-family: 'Poppins'; font-weight: 600; }
+
+  /* MARINA CLUSTER MARKER */
+  .marina-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    pointer-events: auto !important;
+  }
+  .marina-tooltip::before { display: none !important; }
+  .leaflet-tooltip-right.marina-tooltip { margin-left: 0 !important; }
+
+  .marina-cluster {
+    background: #fff;
+    border: 2px solid var(--brand-800);
+    border-radius: 999px;
+    padding: 6px 12px 6px 6px;
+    box-shadow: 0 4px 14px rgba(38,7,84,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    white-space: nowrap;
+    font-family: 'Figtree', sans-serif;
+  }
+  .marina-cluster:hover { transform: scale(1.05); }
+  .marina-cluster .count {
+    background: var(--brand-800);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: 'Poppins';
+  }
+  .marina-cluster.tier-mid { border-color: #c08410; }
+  .marina-cluster.tier-mid .count { background: #c08410; }
+  .marina-cluster.tier-high {
+    border-color: var(--brand-800);
+    background: linear-gradient(254deg, var(--grad-a-start), var(--grad-a-end));
+    color: #fff;
+  }
+  .marina-cluster.tier-high .count { background: rgba(255,255,255,0.25); }
+  .marina-cluster .info { display: flex; flex-direction: column; line-height: 1.15; }
+  .marina-cluster .name { font-size: 11px; font-weight: 600; }
+  .marina-cluster .price { font-size: 10px; opacity: 0.75; font-weight: 500; }
+
+  .marina-cluster.pulsing {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(38,7,84,0.25), 0 0 0 0 rgba(75,14,163,0.5); }
+    50% { box-shadow: 0 4px 14px rgba(38,7,84,0.25), 0 0 0 12px rgba(75,14,163,0); }
+  }
+  /* INDIVIDUAL BOAT FUZZY CIRCLE */
+  .boat-fuzzy-pin {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(75,14,163,0.32) 0%, rgba(75,14,163,0.08) 60%, transparent 100%);
+    border: 2px solid rgba(75,14,163,0.6);
+    cursor: pointer;
+  }
+
+  /* MARINA DETAIL DRAWER */
+  .marina-drawer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: 0 -8px 32px rgba(38,7,84,0.15);
+    padding: 20px 22px 22px;
+    z-index: 1000;
+    transform: translateY(110%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 55%;
+    overflow-y: auto;
+  }
+  .marina-drawer.open { transform: translateY(0); }
+  .drawer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .drawer-header h3 { font-size: 18px; margin-bottom: 4px; }
+  .drawer-header p { font-size: 12px; color: var(--gray-700); }
+  .drawer-close {
+    background: var(--gray-25);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .drawer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .mini-card {
+    background: var(--gray-10);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid var(--gray-50);
+  }
+  .mini-card .thumb {
+    aspect-ratio: 16 / 10;
+    background-size: cover;
+    background-position: center;
+  }
+  .mini-card .body { padding: 10px 12px; }
+  .mini-card .price { font-family: 'Poppins'; font-weight: 600; font-size: 13px; }
+  .mini-card .title { font-size: 11px; color: var(--gray-700); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray-100); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gray-200); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; height: calc(100vh - 124px); }
+    .listings-panel { display: none; }
+    .listings-panel.show { display: block; }
+    .map-panel.hide { display: none; }
+    .listings-grid { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+    .market-summary { width: 200px; }
+  }
+
+  /* MOBILE TOGGLE */
+  .mobile-view-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--brand-800);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-family: 'Figtree';
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: var(--shadow-elev);
+    z-index: 999;
+    align-items: center;
+    gap: 8px;
+  }
+  @media (max-width: 900px) {
+    .mobile-view-toggle { display: inline-flex; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="nav">
+  <div class="logo">
+    <div class="mark">YW</div>
+    <span class="word">YACHTWAY</span>
+  </div>
+  <div class="nav-links">
+    <a href="#" class="active">Buy</a>
+    <a href="#">Sell</a>
+    <a href="#">EasyFund</a>
+    <a href="#">MasterCover</a>
+    <a href="#">Studio</a>
+  </div>
+  <div class="nav-right">
+    <button class="btn-ghost">Sign in</button>
+    <button class="btn-primary">List your yacht</button>
+  </div>
+</nav>
+
+<!-- FILTER BAR -->
+<div class="filterbar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" placeholder="Search marina, region, or boat" />
+  </div>
+  <button class="pill" data-filter="price">
+    Price
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <button class="pill" data-filter="length">
+    Length
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <button class="pill" data-filter="year">
+    Year
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <button class="pill" data-filter="type">
+    Type
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <button class="pill active" data-filter="verified" id="verifiedPill">
+    Verified brokers only
+  </button>
+  <div class="filter-results"><strong id="resultCount">0</strong> listings across South Florida</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- LISTINGS -->
+  <aside class="listings-panel" id="listingsPanel">
+    <div class="panel-header">
+      <h2 id="panelTitle">South Florida</h2>
+      <button class="back-btn" id="backBtn" onclick="clearSelection()" style="display:none;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        All cities
+      </button>
+    </div>
+    <p class="panel-sub" id="panelSub">Showing all marinas. Click a marina pin to focus.</p>
+    <div class="listings-grid" id="listingsGrid"></div>
+  </aside>
+
+  <!-- MAP -->
+  <div class="map-panel" id="mapPanel">
+    <div id="map"></div>
+
+    <!-- MARKET SUMMARY -->
+    <div class="map-overlay market-summary">
+      <h4>Market snapshot</h4>
+      <div class="stat-row"><span>Active listings</span><span id="snapListings">0</span></div>
+      <div class="stat-row"><span>Median price</span><span id="snapMedian">$0</span></div>
+      <div class="divider"></div>
+      <div class="stat-row"><span>New this month</span><span id="snapNew">0</span></div>
+    </div>
+
+    <!-- MAP CONTROLS -->
+    <div class="map-overlay map-controls">
+      <button class="map-toggle" data-layer="heatmap" id="heatmapToggle">
+        <span class="swatch" style="background: linear-gradient(90deg, #32D583, #FDB022, #F97066);"></span>
+        Price range
+      </button>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="map-overlay legend" id="legend">
+      <div class="legend-item"><span class="swatch" style="background:#32D583;"></span>Under $200K</div>
+      <div class="legend-item"><span class="swatch" style="background:#FDB022;"></span>$200K to $800K</div>
+      <div class="legend-item"><span class="swatch" style="background:#F97066;"></span>Over $800K</div>
+    </div>
+
+    <!-- ZOOM HINT -->
+    <div class="map-overlay zoom-hint" id="zoomHint">
+      <span class="badge">Zoom level</span>
+      <span id="zoomValue">8</span>
+    </div>
+
+  </div>
+</div>
+
+<button class="mobile-view-toggle" id="mobileToggle">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-4.5-8-12a8 8 0 1 1 16 0c0 7.5-8 12-8 12z"/></svg>
+  Show map
+</button>
+
+<script>
+/* ===========================================================
+   YACHTWAY MAP SEARCH PROTOTYPE
+   Demo data. Single file. No backend.
+   =========================================================== */
+
+// ----- MARINAS (South Florida) -----
+// Coordinates verified from Google Places. Each marina is inside the named city.
+const MARINAS = [
+  { id: 'miami',           name: 'Miamarina at Bayside',     city: 'Miami',           lat: 25.7792, lng: -80.1865 },
+  { id: 'aventura',        name: 'Turnberry Marina',         city: 'Aventura',        lat: 25.9585, lng: -80.1268 },
+  { id: 'fort-lauderdale', name: 'Pier Sixty-Six Marina',    city: 'Fort Lauderdale', lat: 26.1014, lng: -80.1144 },
+  { id: 'palm-beach',      name: 'Town of Palm Beach Marina',city: 'Palm Beach',      lat: 26.7033, lng: -80.0442 },
+];
+
+// ----- LISTINGS (mock) -----
+// Photos use Unsplash hot-link with yacht-relevant keywords.
+const PHOTOS = [
+  'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&q=70',
+  'https://images.unsplash.com/photo-1569949381669-ecf31ae8e613?w=800&q=70',
+  'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&q=70',
+  'https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=800&q=70',
+  'https://images.unsplash.com/photo-1518756131217-31eb79b20e8f?w=800&q=70',
+  'https://images.unsplash.com/photo-1542296332-2e4473faf563?w=800&q=70',
+  'https://images.unsplash.com/photo-1599582909646-2d3eb56b0a3a?w=800&q=70',
+  'https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800&q=70',
+  'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800&q=70',
+  'https://images.unsplash.com/photo-1569949381669-ecf31ae8e613?w=800&q=70',
+  'https://images.unsplash.com/photo-1542296332-2e4473faf563?w=800&q=70',
+  'https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=800&q=70',
+];
+
+const LISTINGS = [
+  // ----- MIAMI (8) -----
+  { id: 1,  marinaId: 'miami', make: 'Sea Ray',       model: 'Sundancer 320', year: 2021, length: 32, price:  185000, tier: 'verified',  photo: PHOTOS[0] },
+  { id: 2,  marinaId: 'miami', make: 'Boston Whaler', model: '380 Outrage',   year: 2022, length: 38, price:  595000, tier: 'central',   photo: PHOTOS[1] },
+  { id: 3,  marinaId: 'miami', make: 'Riva',          model: 'Iseo',          year: 2020, length: 27, price:  485000, tier: 'verified',  photo: PHOTOS[2] },
+  { id: 4,  marinaId: 'miami', make: 'Chris-Craft',   model: 'Catalina 30',   year: 2019, length: 30, price:  295000, tier: 'verified',  photo: PHOTOS[3] },
+  { id: 5,  marinaId: 'miami', make: 'Axopar',        model: '37 Sun-Top',    year: 2022, length: 37, price:  385000, tier: 'verified',  photo: PHOTOS[4] },
+  { id: 6,  marinaId: 'miami', make: 'Pursuit',       model: 'OS 385',        year: 2020, length: 38, price:  445000, tier: 'verified',  photo: PHOTOS[5] },
+  { id: 7,  marinaId: 'miami', make: 'Grady-White',   model: 'Canyon 366',    year: 2019, length: 36, price:  385000, tier: 'verified',  photo: PHOTOS[6] },
+  { id: 8,  marinaId: 'miami', make: 'Yellowfin',     model: '36',            year: 2020, length: 36, price:  365000, tier: 'verified',  photo: PHOTOS[7] },
+
+  // ----- AVENTURA (8) -----
+  { id: 9,  marinaId: 'aventura', make: 'Bayliner',    model: 'Element M17',  year: 2023, length: 17, price:   28500, tier: 'unverified',photo: PHOTOS[8] },
+  { id: 10, marinaId: 'aventura', make: 'Robalo',      model: 'R230',         year: 2021, length: 23, price:   84500, tier: 'verified',  photo: PHOTOS[9] },
+  { id: 11, marinaId: 'aventura', make: 'Sea Hunt',    model: 'Ultra 234',    year: 2020, length: 23, price:   72000, tier: 'verified',  photo: PHOTOS[10] },
+  { id: 12, marinaId: 'aventura', make: 'Cobalt',      model: 'R7',           year: 2022, length: 25, price:  142000, tier: 'verified',  photo: PHOTOS[11] },
+  { id: 13, marinaId: 'aventura', make: 'SeaVee',      model: '390Z',         year: 2021, length: 39, price:  525000, tier: 'verified',  photo: PHOTOS[0] },
+  { id: 14, marinaId: 'aventura', make: 'Contender',   model: '39ST',         year: 2019, length: 39, price:  425000, tier: 'verified',  photo: PHOTOS[1] },
+  { id: 15, marinaId: 'aventura', make: 'Back Cove',   model: '34',           year: 2020, length: 34, price:  395000, tier: 'verified',  photo: PHOTOS[2] },
+  { id: 16, marinaId: 'aventura', make: 'Hinckley',    model: 'Picnic Boat 40', year: 2021, length: 40, price:  995000, tier: 'central', photo: PHOTOS[3] },
+
+  // ----- FORT LAUDERDALE (7) -----
+  { id: 17, marinaId: 'fort-lauderdale', make: 'Ferretti Yachts', model: '720',         year: 2021, length: 72, price: 3850000, tier: 'central',  photo: PHOTOS[4] },
+  { id: 18, marinaId: 'fort-lauderdale', make: 'Princess',        model: 'Y72',         year: 2020, length: 72, price: 2950000, tier: 'central',  photo: PHOTOS[5] },
+  { id: 19, marinaId: 'fort-lauderdale', make: 'Sunseeker',       model: 'Predator 60', year: 2019, length: 60, price: 1450000, tier: 'verified', photo: PHOTOS[6] },
+  { id: 20, marinaId: 'fort-lauderdale', make: 'Pershing',        model: '8X',          year: 2022, length: 88, price: 5450000, tier: 'central',  photo: PHOTOS[7] },
+  { id: 21, marinaId: 'fort-lauderdale', make: 'Azimut',          model: 'Grande 32M',  year: 2021, length: 105, price: 9850000, tier: 'central', photo: PHOTOS[8] },
+  { id: 22, marinaId: 'fort-lauderdale', make: 'Sanlorenzo',      model: 'SL96',        year: 2020, length: 96, price: 7650000, tier: 'central',  photo: PHOTOS[9] },
+  { id: 23, marinaId: 'fort-lauderdale', make: 'Riva',            model: '88 Florida',  year: 2022, length: 88, price: 6850000, tier: 'central',  photo: PHOTOS[10] },
+
+  // ----- PALM BEACH (7) -----
+  { id: 24, marinaId: 'palm-beach', make: 'Hatteras',  model: 'GT70',            year: 2018, length: 70, price: 3450000, tier: 'central',  photo: PHOTOS[11] },
+  { id: 25, marinaId: 'palm-beach', make: 'Viking',    model: '68 Convertible',  year: 2020, length: 68, price: 4250000, tier: 'central',  photo: PHOTOS[0] },
+  { id: 26, marinaId: 'palm-beach', make: 'DeAntonio', model: 'D60',             year: 2023, length: 60, price: 2150000, tier: 'central',  photo: PHOTOS[1] },
+  { id: 27, marinaId: 'palm-beach', make: 'Vanquish',  model: 'VQ70',            year: 2022, length: 70, price: 2850000, tier: 'central',  photo: PHOTOS[2] },
+  { id: 28, marinaId: 'palm-beach', make: 'Wally',     model: 'Wallytender 48',  year: 2021, length: 48, price: 1250000, tier: 'verified', photo: PHOTOS[3] },
+  { id: 29, marinaId: 'palm-beach', make: 'Nordhavn',  model: '52',              year: 2017, length: 52, price: 1650000, tier: 'verified', photo: PHOTOS[4] },
+  { id: 30, marinaId: 'palm-beach', make: 'Sunseeker', model: 'Manhattan 68',    year: 2021, length: 68, price: 2450000, tier: 'central',  photo: PHOTOS[5] },
+];
+
+// ----- HELPERS -----
+function fmtPrice(n) {
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(n % 1000000 === 0 ? 0 : 2).replace(/\.?0+$/,'') + 'M';
+  if (n >= 1000) return '$' + Math.round(n/1000).toLocaleString('en-US') + 'K';
+  return '$' + n.toLocaleString('en-US');
+}
+function fmtPriceFull(n) { return '$' + n.toLocaleString('en-US'); }
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const mid = Math.floor(sorted.length/2);
+  return sorted.length % 2 === 0 ? (sorted[mid-1]+sorted[mid])/2 : sorted[mid];
+}
+
+function tierLabel(tier) {
+  return tier === 'central' ? 'Central agency'
+       : tier === 'verified' ? 'Verified broker'
+       : 'Listing';
+}
+
+function marinaTier(listings) {
+  // For cluster color: based on average price.
+  if (!listings.length) return 'low';
+  const avg = listings.reduce((s,l)=>s+l.price, 0) / listings.length;
+  if (avg >= 800000) return 'high';
+  if (avg >= 200000) return 'mid';
+  return 'low';
+}
+
+// ----- STATE -----
+let activeMarinaId = null;
+let activeLayer = 'marinas';
+let verifiedOnly = true;
+
+// ----- MAP SETUP -----
+const map = L.map('map', {
+  center: [26.24, -80.12],
+  zoom: 9,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// CartoDB Voyager tiles. Clean, neutral, premium feel.
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png', {
+  maxZoom: 18,
+  subdomains: 'abcd',
+}).addTo(map);
+
+// Layer groups
+const marinaLayer = L.layerGroup().addTo(map);
+const heatLayer   = L.layerGroup();
+const boatLayer   = L.layerGroup();
+
+// ----- RENDER MARINA CLUSTERS -----
+const marinaMarkers = {};
+function renderMarinas() {
+  marinaLayer.clearLayers();
+  MARINAS.forEach(m => {
+    const listings = LISTINGS.filter(l => l.marinaId === m.id && (!verifiedOnly || l.tier !== 'unverified'));
+    if (!listings.length) return;
+    const minPrice = Math.min(...listings.map(l=>l.price));
+    const tier = marinaTier(listings);
+    const dotColor = tier === 'high' ? '#4B0EA3' : tier === 'mid' ? '#c08410' : '#260754';
+
+    const marker = L.circleMarker([m.lat, m.lng], {
+      radius: 10,
+      color: '#ffffff',
+      weight: 3,
+      fillColor: dotColor,
+      fillOpacity: 1,
+    }).addTo(marinaLayer);
+
+    const labelHtml = `
+      <div class="marina-cluster tier-${tier}" data-marina="${m.id}" onclick="focusMarina('${m.id}')">
+        <div class="count">${listings.length}</div>
+        <div class="info">
+          <span class="name">${m.city}</span>
+          <span class="price">from ${fmtPrice(minPrice)}</span>
+        </div>
+      </div>`;
+
+    marker.bindTooltip(labelHtml, {
+      permanent: true,
+      direction: 'right',
+      offset: [10, 0],
+      className: 'marina-tooltip',
+      opacity: 1,
+    });
+
+    marker.on('click', () => focusMarina(m.id));
+    marinaMarkers[m.id] = marker;
+  });
+}
+
+// ----- RENDER FUZZY BOAT CIRCLES -----
+function renderBoats() {
+  boatLayer.clearLayers();
+  const visible = LISTINGS.filter(l => !verifiedOnly || l.tier !== 'unverified');
+  visible.forEach(l => {
+    const m = MARINAS.find(mm => mm.id === l.marinaId);
+    if (!m) return;
+    // Jitter the lat/lng so circles do not overlap exactly.
+    const jLat = m.lat + (Math.random() - 0.5) * 0.012;
+    const jLng = m.lng + (Math.random() - 0.5) * 0.012;
+    // Larger radius for higher value vessels.
+    const radius = l.price > 1000000 ? 1200 : 800;
+    const circle = L.circle([jLat, jLng], {
+      radius,
+      color: 'rgba(75,14,163,0.65)',
+      weight: 1.5,
+      fillColor: 'rgba(75,14,163,0.85)',
+      fillOpacity: 0.18,
+      interactive: true,
+    }).addTo(boatLayer);
+    circle.bindTooltip(`${l.make} ${l.model} . ${fmtPrice(l.price)}`, { direction: 'top' });
+  });
+}
+
+// ----- RENDER PRICE HEATMAP -----
+function renderHeatmap() {
+  heatLayer.clearLayers();
+  MARINAS.forEach(m => {
+    const listings = LISTINGS.filter(l => l.marinaId === m.id && (!verifiedOnly || l.tier !== 'unverified'));
+    if (!listings.length) return;
+    const tier = marinaTier(listings);
+    const color = tier === 'high' ? '#F97066' : tier === 'mid' ? '#FDB022' : '#32D583';
+    L.circle([m.lat, m.lng], {
+      radius: 6000 + listings.length * 800,
+      color: color,
+      weight: 0,
+      fillColor: color,
+      fillOpacity: 0.30,
+    }).addTo(heatLayer);
+  });
+}
+
+// ----- HEATMAP TOGGLE -----
+function toggleHeatmap() {
+  const btn = document.getElementById('heatmapToggle');
+  const isOn = btn.classList.toggle('active');
+  if (isOn) {
+    heatLayer.addTo(map);
+    document.getElementById('legend').classList.add('show');
+  } else {
+    heatLayer.remove();
+    document.getElementById('legend').classList.remove('show');
+  }
+}
+
+// ----- LISTINGS PANEL RENDER -----
+function renderListings() {
+  const grid = document.getElementById('listingsGrid');
+  let visible = LISTINGS.filter(l => !verifiedOnly || l.tier !== 'unverified');
+  if (activeMarinaId) visible = visible.filter(l => l.marinaId === activeMarinaId);
+
+  grid.innerHTML = visible.map(l => {
+    const m = MARINAS.find(mm => mm.id === l.marinaId);
+    return `
+      <div class="card" data-id="${l.id}" data-marina="${l.marinaId}" onclick="onCardClick(${l.id})" onmouseenter="onCardHover('${l.marinaId}', true)" onmouseleave="onCardHover('${l.marinaId}', false)">
+        <div class="card-image" style="background-image: url('${l.photo}')">
+          <div class="card-fav">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-price">${fmtPriceFull(l.price)}</div>
+          <div class="card-title">${l.make} ${l.model}</div>
+          <div class="card-specs">
+            <span>${l.year}</span>
+            <span>${l.length} ft</span>
+          </div>
+          <div class="card-marina">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-12a8 8 0 1 1 16 0c0 7.5-8 12-8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${m.city}
+            <span class="approx">Approx. area</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('resultCount').textContent = visible.length;
+}
+
+// ----- SNAPSHOT -----
+function updateSnapshot(visible) {
+  document.getElementById('snapListings').textContent = visible.length;
+  document.getElementById('snapMedian').textContent = fmtPrice(median(visible.map(l=>l.price)));
+  document.getElementById('snapNew').textContent = visible.length ? Math.max(1, Math.round(visible.length * 0.4)) : 0;
+}
+
+// Recalculates the snapshot based on which marinas are inside the current map viewport.
+function updateSnapshotFromViewport() {
+  const bounds = map.getBounds();
+  const visibleMarinaIds = new Set(
+    MARINAS.filter(m => bounds.contains([m.lat, m.lng])).map(m => m.id)
+  );
+  const visible = LISTINGS.filter(l =>
+    visibleMarinaIds.has(l.marinaId) &&
+    (!verifiedOnly || l.tier !== 'unverified')
+  );
+  updateSnapshot(visible);
+}
+
+// ----- INTERACTIONS -----
+function onCardClick(id) {
+  window.open(`yachtway-listing-detail.html?id=${id}`, '_blank', 'noopener');
+}
+
+function onCardHover(marinaId, on) {
+  const marker = marinaMarkers[marinaId];
+  if (!marker) return;
+  const tooltip = marker.getTooltip();
+  if (!tooltip) return;
+  const el = tooltip.getElement()?.querySelector('.marina-cluster');
+  if (!el) return;
+  el.classList.toggle('pulsing', on);
+}
+
+let selectedMarinaId = null;
+
+function focusMarina(id) {
+  activeMarinaId = id;
+  const m = MARINAS.find(mm => mm.id === id);
+  if (!m) return;
+
+  // Reset previous selection visual
+  if (selectedMarinaId && marinaMarkers[selectedMarinaId]) {
+    marinaMarkers[selectedMarinaId].setStyle({ radius: 10, weight: 3 });
+  }
+  // Highlight new selection
+  selectedMarinaId = id;
+  if (marinaMarkers[id]) {
+    marinaMarkers[id].setStyle({ radius: 15, weight: 4 });
+  }
+
+  document.getElementById('panelTitle').textContent = m.city;
+  const listings = LISTINGS.filter(l => l.marinaId === id && (!verifiedOnly || l.tier !== 'unverified'));
+  document.getElementById('panelSub').textContent =
+    `${listings.length} listings in ${m.city}. Exact slip locations provided to verified inquirers.`;
+
+  document.getElementById('backBtn').style.display = 'inline-flex';
+
+  renderListings();
+  document.getElementById('listingsPanel').scrollTop = 0;
+
+  map.flyTo([m.lat, m.lng], 11, { duration: 0.6 });
+}
+
+function clearSelection() {
+  // Reset selection visual
+  if (selectedMarinaId && marinaMarkers[selectedMarinaId]) {
+    marinaMarkers[selectedMarinaId].setStyle({ radius: 10, weight: 3 });
+  }
+  selectedMarinaId = null;
+  activeMarinaId = null;
+
+  document.getElementById('panelTitle').textContent = 'South Florida';
+  document.getElementById('panelSub').textContent = 'Showing all marinas. Click a marina pin to focus.';
+  document.getElementById('backBtn').style.display = 'none';
+
+  renderListings();
+  document.getElementById('listingsPanel').scrollTop = 0;
+
+  map.flyTo([26.24, -80.12], 9, { duration: 0.7 });
+}
+
+function pulseMarina(id) {
+  const marker = marinaMarkers[id];
+  if (!marker) return;
+  const tooltip = marker.getTooltip();
+  if (!tooltip) return;
+  const el = tooltip.getElement()?.querySelector('.marina-cluster');
+  if (!el) return;
+  el.classList.add('pulsing');
+  setTimeout(() => el.classList.remove('pulsing'), 2400);
+}
+
+// ----- HEATMAP TOGGLE BUTTON -----
+document.getElementById('heatmapToggle').addEventListener('click', toggleHeatmap);
+
+// ----- VERIFIED FILTER -----
+document.getElementById('verifiedPill').addEventListener('click', (e) => {
+  verifiedOnly = !verifiedOnly;
+  e.currentTarget.classList.toggle('active', verifiedOnly);
+  renderMarinas();
+  renderHeatmap();
+  renderListings();
+  updateSnapshotFromViewport();
+});
+
+// ----- ZOOM HINT -----
+const zoomHint = document.getElementById('zoomHint');
+const zoomValue = document.getElementById('zoomValue');
+map.on('zoom', () => {
+  zoomValue.textContent = Math.round(map.getZoom());
+  zoomHint.classList.add('show');
+  clearTimeout(zoomHint._t);
+  zoomHint._t = setTimeout(() => zoomHint.classList.remove('show'), 1400);
+});
+
+// ----- VIEWPORT-DRIVEN SNAPSHOT -----
+map.on('moveend zoomend', updateSnapshotFromViewport);
+
+// ----- MOBILE TOGGLE -----
+const mobileBtn = document.getElementById('mobileToggle');
+let mobileShowingMap = false;
+mobileBtn.addEventListener('click', () => {
+  mobileShowingMap = !mobileShowingMap;
+  document.getElementById('listingsPanel').classList.toggle('show', !mobileShowingMap);
+  document.getElementById('mapPanel').classList.toggle('hide', !mobileShowingMap);
+  mobileBtn.innerHTML = mobileShowingMap
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg> Show listings`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-4.5-8-12a8 8 0 1 1 16 0c0 7.5-8 12-8 12z"/></svg> Show map`;
+  setTimeout(() => map.invalidateSize(), 300);
+});
+
+// ----- INIT -----
+renderMarinas();
+renderHeatmap();
+renderListings();
+updateSnapshotFromViewport();
+
+// Default panel state.
+document.getElementById('listingsPanel').classList.add('show');
+
+// Force the map to recalculate its size after layout settles, then lock the view to Florida.
+function lockFloridaView() {
+  map.invalidateSize(true);
+  map.setView([26.24, -80.12], 9, { animate: false });
+}
+window.addEventListener('load', () => {
+  lockFloridaView();
+  setTimeout(lockFloridaView, 100);
+  setTimeout(lockFloridaView, 500);
+});
+
+</script>
+</body>
+</html>
