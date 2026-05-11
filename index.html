@@ -661,10 +661,14 @@
     padding: 11px 16px;
     cursor: pointer;
     border-bottom: 1px solid var(--gray-50);
+    border-left: 3px solid transparent;
     transition: background 0.1s ease;
   }
   .map-search-result:last-child { border-bottom: none; }
   .map-search-result:hover { background: var(--gray-25); }
+  /* Internal YachtWay locations get a purple left-bar to signal clickable catalog entry */
+  .map-search-result.is-internal { border-left-color: var(--brand-700); }
+  .map-search-result.is-internal .map-search-result-detail { color: var(--brand-700); }
   .map-search-result-name {
     font-size: 13px;
     color: var(--brand-800);
@@ -680,17 +684,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .map-search-result-marina {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--brand-700);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-top: 4px;
   }
   .map-search-empty {
     padding: 16px;
@@ -2135,14 +2128,18 @@ async function geocodeLocation(query) {
   const localMatch = MARINAS.find(m => m.city.toLowerCase().includes(query.toLowerCase()));
   const internalResults = MARINAS
     .filter(m => m.city.toLowerCase().includes(query.toLowerCase()))
-    .map(m => ({
-      lat: m.lat,
-      lng: m.lng,
-      name: m.city,
-      detail: `${LISTINGS.filter(l => l.marinaId === m.id).length} listings on YachtWay`,
-      isMarina: true,
-      marinaId: m.id,
-    }));
+    .map(m => {
+      const count = LISTINGS.filter(l => l.marinaId === m.id).length;
+      const where = m.region === m.country ? m.country : `${m.region}, ${m.country}`;
+      return {
+        lat: m.lat,
+        lng: m.lng,
+        name: m.city,
+        detail: `${where} · ${count} listing${count === 1 ? '' : 's'} on YachtWay`,
+        isMarina: true,
+        marinaId: m.id,
+      };
+    });
 
   // Hit Nominatim (OpenStreetMap) for general geocoding
   try {
@@ -2176,13 +2173,9 @@ function renderSearchResults(results) {
     return;
   }
   mapSearchResults.innerHTML = results.map((r, idx) => `
-    <div class="map-search-result" data-idx="${idx}">
+    <div class="map-search-result${r.isMarina ? ' is-internal' : ''}" data-idx="${idx}">
       <div class="map-search-result-name">${escapeHtml(r.name)}</div>
       <div class="map-search-result-detail">${escapeHtml(r.detail)}</div>
-      ${r.isMarina ? `<div class="map-search-result-marina">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 17 10"/></svg>
-        YachtWay location
-      </div>` : ''}
     </div>
   `).join('');
   // Attach click handlers
