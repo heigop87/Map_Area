@@ -1887,14 +1887,35 @@ function renderListings() {
     );
   }
 
+  // Viewport filter: only show listings whose city is currently visible on the map
+  const mapBounds = map.getBounds();
+  const visibleCityIds = new Set(MARINAS.filter(m => mapBounds.contains([m.lat, m.lng])).map(m => m.id));
+  visible = visible.filter(l => visibleCityIds.has(l.marinaId));
+
+  // Default panel subtitle when no city / brand filter is overriding it
+  if (!activeMarinaId && !brandQuery) {
+    document.getElementById('panelSub').textContent =
+      `${visible.length} listing${visible.length === 1 ? '' : 's'} in this area`;
+  }
+
   // Empty state
   if (!visible.length) {
+    const hasActiveFilters = brandQuery || activeMarinaId || newOnlyFilter ||
+      filters.price.active || filters.length.active || filters.year.active;
+    const heading = hasActiveFilters
+      ? 'No matching listings in this area'
+      : 'No listings in this area';
+    const message = hasActiveFilters
+      ? 'Try panning the map, zooming out, or adjusting your filters.'
+      : 'Pan or zoom the map to find available yachts.';
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--gray-700);">
-        <div style="font-size: 16px; font-weight: 600; color: var(--brand-800); margin-bottom: 8px;">No listings match your filters</div>
-        <div style="font-size: 14px;">Try adjusting the price, length, or year range to see more yachts.</div>
+        <div style="font-size: 16px; font-weight: 600; color: var(--brand-800); margin-bottom: 8px;">${heading}</div>
+        <div style="font-size: 14px;">${message}</div>
       </div>`;
-    document.getElementById('panelSub').textContent = brandQuery ? `0 results for "${brandQuery}"` : '0 listings match';
+    if (!activeMarinaId && !brandQuery) {
+      document.getElementById('panelSub').textContent = '0 listings in this area';
+    }
     return;
   }
 
@@ -2078,7 +2099,26 @@ map.on('zoom', () => {
 });
 
 // ----- VIEWPORT-DRIVEN SNAPSHOT & RE-RENDER -----
-map.on('moveend zoomend', updateSnapshotFromViewport);
+let viewportUpdateTimeout;
+map.on('moveend zoomend', () => {
+  updateSnapshotFromViewport();
+  // Debounce listings re-render so fast pans don't cause jank
+  clearTimeout(viewportUpdateTimeout);
+  viewportUpdateTimeout = setTimeout(renderListings, 80);
+});
+// When user drags the map, clear any city focus so the viewport-driven list takes over
+map.on('dragstart', () => {
+  if (activeMarinaId) {
+    if (selectedMarinaId && marinaMarkers[selectedMarinaId]) {
+      marinaMarkers[selectedMarinaId].setStyle({ radius: 10, weight: 3 });
+    }
+    selectedMarinaId = null;
+    activeMarinaId = null;
+    document.getElementById('panelTitle').textContent = 'Yachts for sale';
+    // Keep back button if brand search is still active, otherwise hide it
+    document.getElementById('backBtn').style.display = brandQuery ? 'inline-flex' : 'none';
+  }
+});
 // Re-render pins when zoom crosses a threshold (city → state → country)
 let lastZoomLevel = null;
 map.on('zoomend', () => {
